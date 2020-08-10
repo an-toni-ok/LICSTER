@@ -1,4 +1,4 @@
-# Building and Flashing the STM32 Development Boards
+# Building and Flashing the STM32 Development Boards (OPC-UA open62541 Testing)
 This setup is required for flashing the STM32 remote IO boards.
 The gcc toolchain is only necessary for building custom images.
 
@@ -152,3 +152,56 @@ DEB: modbus_cmd_handler_task(Src/modbus_handler.c:182) Creating modbus_cmd_handl
 DEB: modbus_cmd_handler_task(Src/modbus_handler.c:199) Before netconn_accept.
 DEB: httpd_task(Src/http.c:92) Starting HTTPD
 ```
+
+## Build with OPC-UA open62541
+
+### Configure and build single file of open62541
+Checkout the open62541 GIT
+
+```
+git clone https://github.com/open62541/open62541
+```
+
+Change into open62541 directory
+
+```
+cd open62541
+```
+
+Build the single file to use it (Build will fail).
+https://open62541.org/doc/current/building.html#freertos-lwip
+```
+cmake -DUA_ARCHITECTURE=freertosLWIP -DUA_ENABLE_AMALGAMATION=ON ./
+make
+```
+
+Use the graphical cmake GUI
+```
+ccmake ./
+```
+
+### Configure LwIP
+
+```
+#define LWIP_COMPAT_SOCKETS 0 // Don't do name define-transformation in networking function names.
+#define LWIP_SOCKET 1 // Enable Socket API (normally already set)
+#define LWIP_DNS 1 // enable the lwip_getaddrinfo function, struct addrinfo and more.
+#define SO_REUSE 1 // Allows to set the socket as reusable
+#define LWIP_TIMEVAL_PRIVATE 0 // This is optional. Set this flag if you get a compilation error about redefinition of struct timeval
+```
+
+### Configure FreeRTOS
+
+```
+#define configCHECK_FOR_STACK_OVERFLOW 1
+#define configUSE_MALLOC_FAILED_HOOK 1
+```
+
+## Configure Makefile
+
+Add architecture to C_FLAGS
+
+
+
+
+
