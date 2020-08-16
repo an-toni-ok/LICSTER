@@ -77,6 +77,7 @@ static UA_UsernamePasswordLogin logins[2] = {
     {UA_STRING_STATIC("admin"), UA_STRING_STATIC("admin")},
     {UA_STRING_STATIC("root"), UA_STRING_STATIC("root")}
 };
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -287,7 +288,38 @@ int main(void)
   MX_GPIO_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+  printf("\n\n\r+++++++++++++++++++++++++++++++++++++++\n");
+ 
+  printf("\rBuild: %s %s\n", __DATE__, __TIME__);
+  printf("\rInit done!\n");
+  printf("\rWaiting for network switch...\n");
+    
+  if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5)) {
+    printf("\rGPIO_PIN_A05 is high\n");
+    deviceID += 1;
+  }
+  if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6)) {
+    printf("\rGPIO_PIN_A06 is high\n");
+    deviceID += 2;
+  }
+  if (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_14)) {
+    printf("\rGPIO_PIN_D14 is high\n");
+    deviceID += 4;
+  }
+  if (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_15)) {
+    printf("\rGPIO_PIN_D15 is high\n");
+    deviceID += 8;
+  }
+  if (HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_12)) {
+    printf("\rGPIO_PIN_F12 is high\n");
+    deviceID += 16;
+  }
 
+  if ((deviceID == 0) || (deviceID == 31)) {
+    printf("\rError: No shield connected!\n");
+  }
+  printf("\rDeviceID: %u\n", (unsigned int) deviceID);
+  printf("\rDeviceSE: %u\n", (unsigned int) HAL_GetDEVID);
   /* USER CODE END 2 */
 
   /* Init scheduler */
