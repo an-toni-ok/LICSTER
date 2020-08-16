@@ -2,9 +2,9 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, OPC-UA ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, OPC-UA ]
 
 jobs:
   build:
