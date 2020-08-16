@@ -174,8 +174,10 @@ writeVariable(UA_Server *server) {
 
 /* LED Method */
 
-/* Relay 0 */
-
+/**
+  * @brief  Check the status of the RED LED
+  * @retval UA_StatusCode
+  */
 UA_StatusCode
 readLedRedState(UA_Server *server,
                 const UA_NodeId *sessionId, void *sessionContext,
@@ -189,6 +191,79 @@ readLedRedState(UA_Server *server,
     return UA_STATUSCODE_GOOD;
 }
 
+/**
+  * @brief  Check the status of Output 1
+  * @retval UA_StatusCode
+  */
+UA_StatusCode
+readOut1State(UA_Server *server,
+                const UA_NodeId *sessionId, void *sessionContext,
+                const UA_NodeId *nodeId, void *nodeContext,
+                UA_Boolean sourceTimeStamp, const UA_NumericRange *range,
+                UA_DataValue *dataValue) {
+    UA_Boolean out1_State = HAL_GPIO_ReadPin(out1_GPIO_Port, out1_Pin);
+    UA_Variant_setScalarCopy(&dataValue->value, &out1_State,
+                             &UA_TYPES[UA_TYPES_BOOLEAN]);
+    dataValue->hasValue = true;
+    return UA_STATUSCODE_GOOD;
+}
+
+/**
+  * @brief  Check the status of Output 2
+  * @retval UA_StatusCode
+  */
+UA_StatusCode
+readOut2State(UA_Server *server,
+                const UA_NodeId *sessionId, void *sessionContext,
+                const UA_NodeId *nodeId, void *nodeContext,
+                UA_Boolean sourceTimeStamp, const UA_NumericRange *range,
+                UA_DataValue *dataValue) {
+    UA_Boolean out2_State = HAL_GPIO_ReadPin(out2_GPIO_Port, out2_Pin);
+    UA_Variant_setScalarCopy(&dataValue->value, &out2_State,
+                             &UA_TYPES[UA_TYPES_BOOLEAN]);
+    dataValue->hasValue = true;
+    return UA_STATUSCODE_GOOD;
+}
+
+/**
+  * @brief  Check the status of Input 1
+  * @retval UA_StatusCode
+  */
+UA_StatusCode
+readIn1State(UA_Server *server,
+                const UA_NodeId *sessionId, void *sessionContext,
+                const UA_NodeId *nodeId, void *nodeContext,
+                UA_Boolean sourceTimeStamp, const UA_NumericRange *range,
+                UA_DataValue *dataValue) {
+    UA_Boolean in1_State = HAL_GPIO_ReadPin(in1_GPIO_Port, in1_Pin);
+    UA_Variant_setScalarCopy(&dataValue->value, &in1_State,
+                             &UA_TYPES[UA_TYPES_BOOLEAN]);
+    dataValue->hasValue = true;
+    return UA_STATUSCODE_GOOD;
+}
+
+/**
+  * @brief  Check the status of Input 2
+  * @retval UA_StatusCode
+  */
+UA_StatusCode
+readIn2State(UA_Server *server,
+                const UA_NodeId *sessionId, void *sessionContext,
+                const UA_NodeId *nodeId, void *nodeContext,
+                UA_Boolean sourceTimeStamp, const UA_NumericRange *range,
+                UA_DataValue *dataValue) {
+    UA_Boolean in2_State = HAL_GPIO_ReadPin(in2_GPIO_Port, in2_Pin);
+    UA_Variant_setScalarCopy(&dataValue->value, &in2_State,
+                             &UA_TYPES[UA_TYPES_BOOLEAN]);
+    dataValue->hasValue = true;
+    return UA_STATUSCODE_GOOD;
+}
+
+
+/**
+  * @brief  Set the RED LED
+  * @retval UA_StatusCode
+  */
 UA_StatusCode
 setLedRedState(UA_Server *server,
                   const UA_NodeId *sessionId, void *sessionContext,
@@ -202,6 +277,44 @@ setLedRedState(UA_Server *server,
     return status;
 }
 
+/**
+  * @brief  Set Output 1
+  * @retval UA_StatusCode
+  */
+UA_StatusCode
+setOut1State(UA_Server *server,
+                  const UA_NodeId *sessionId, void *sessionContext,
+                  const UA_NodeId *nodeId, void *nodeContext,
+                 const UA_NumericRange *range, const UA_DataValue *data) {
+    UA_Boolean currentState = HAL_GPIO_ReadPin(out1_GPIO_Port, out1_Pin);
+    int level = currentState == true ? 0:1;
+    HAL_GPIO_WritePin(out1_GPIO_Port, out1_Pin, level);
+    UA_Boolean out1_state_after_write = HAL_GPIO_ReadPin(out1_GPIO_Port, out1_Pin);
+    UA_StatusCode status = out1_state_after_write == level ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
+    return status;
+}
+
+/**
+  * @brief  Set Output 2
+  * @retval UA_StatusCode
+  */
+UA_StatusCode
+setOut2State(UA_Server *server,
+                  const UA_NodeId *sessionId, void *sessionContext,
+                  const UA_NodeId *nodeId, void *nodeContext,
+                 const UA_NumericRange *range, const UA_DataValue *data) {
+    UA_Boolean currentState = HAL_GPIO_ReadPin(out2_GPIO_Port, out2_Pin);
+    int level = currentState == true ? 0:1;
+    HAL_GPIO_WritePin(out2_GPIO_Port, out2_Pin, level);
+    UA_Boolean out2_state_after_write = HAL_GPIO_ReadPin(out2_GPIO_Port, out2_Pin);
+    UA_StatusCode status = out2_state_after_write == level ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
+    return status;
+}
+
+/**
+  * @brief  Add the RED LED to the OPC-UA Node
+  * @retval void
+  */
 void
 addLedRedControlNode(UA_Server *server) {
     UA_VariableAttributes attr = UA_VariableAttributes_default;
@@ -223,6 +336,109 @@ addLedRedControlNode(UA_Server *server) {
                                         variableTypeNodeId, attr,
                                         ledred, NULL, NULL);
 }
+
+/**
+  * @brief  Add Output 1 to the OPC-UA Node
+  * @retval void
+  */
+void
+addOut1ControlNode(UA_Server *server) {
+    UA_VariableAttributes attr = UA_VariableAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", "Output 1");
+    attr.dataType = UA_TYPES[UA_TYPES_BOOLEAN].typeId;
+    attr.accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+
+    UA_NodeId currentNodeId = UA_NODEID_STRING(1, "Control Output 1.");
+    UA_QualifiedName currentName = UA_QUALIFIEDNAME(1, "Control Output 1.");
+    UA_NodeId parentNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
+    UA_NodeId parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
+    UA_NodeId variableTypeNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE);
+
+    UA_DataSource out1;
+    out1.read = readOut1State;
+    out1.write = setOut1State;
+    UA_Server_addDataSourceVariableNode(server, currentNodeId, parentNodeId,
+                                        parentReferenceNodeId, currentName,
+                                        variableTypeNodeId, attr,
+                                        out1, NULL, NULL);
+}
+
+/**
+  * @brief  Add Output 2 to the OPC-UA Node
+  * @retval void
+  */
+void
+addOut2ControlNode(UA_Server *server) {
+    UA_VariableAttributes attr = UA_VariableAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", "Output 2");
+    attr.dataType = UA_TYPES[UA_TYPES_BOOLEAN].typeId;
+    attr.accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+
+    UA_NodeId currentNodeId = UA_NODEID_STRING(1, "Control Output 2.");
+    UA_QualifiedName currentName = UA_QUALIFIEDNAME(1, "Control Output 2.");
+    UA_NodeId parentNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
+    UA_NodeId parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
+    UA_NodeId variableTypeNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE);
+
+    UA_DataSource out2;
+    out2.read = readOut2State;
+    out2.write = setOut2State;
+    UA_Server_addDataSourceVariableNode(server, currentNodeId, parentNodeId,
+                                        parentReferenceNodeId, currentName,
+                                        variableTypeNodeId, attr,
+                                        out2, NULL, NULL);
+}
+
+/**
+  * @brief  Add Input 1 to the OPC-UA Node
+  * @retval void
+  */
+void
+addIn1ControlNode(UA_Server *server) {
+    UA_VariableAttributes attr = UA_VariableAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", "Input 1");
+    attr.dataType = UA_TYPES[UA_TYPES_BOOLEAN].typeId;
+    attr.accessLevel = UA_ACCESSLEVELMASK_READ;
+
+    UA_NodeId currentNodeId = UA_NODEID_STRING(1, "Read Input 1.");
+    UA_QualifiedName currentName = UA_QUALIFIEDNAME(1, "Read Input 1.");
+    UA_NodeId parentNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
+    UA_NodeId parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
+    UA_NodeId variableTypeNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE);
+
+    UA_DataSource in1;
+    in1.read = readIn1State;
+    UA_Server_addDataSourceVariableNode(server, currentNodeId, parentNodeId,
+                                        parentReferenceNodeId, currentName,
+                                        variableTypeNodeId, attr,
+                                        in1, NULL, NULL);
+}
+
+/**
+  * @brief  Add Input 2 to the OPC-UA Node
+  * @retval void
+  */
+void
+addIn2ControlNode(UA_Server *server) {
+    UA_VariableAttributes attr = UA_VariableAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", "Input 2");
+    attr.dataType = UA_TYPES[UA_TYPES_BOOLEAN].typeId;
+    attr.accessLevel = UA_ACCESSLEVELMASK_READ;
+
+    UA_NodeId currentNodeId = UA_NODEID_STRING(1, "Read Input 2.");
+    UA_QualifiedName currentName = UA_QUALIFIEDNAME(1, "Read Input 2.");
+    UA_NodeId parentNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
+    UA_NodeId parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
+    UA_NodeId variableTypeNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE);
+
+    UA_DataSource in2;
+    in2.read = readIn2State;
+    UA_Server_addDataSourceVariableNode(server, currentNodeId, parentNodeId,
+                                        parentReferenceNodeId, currentName,
+                                        variableTypeNodeId, attr,
+                                        in2, NULL, NULL);
+}
+
 
 /* Node features */
 static UA_Boolean
@@ -613,8 +829,8 @@ void opcuaFunc(void *argument)
   osDelay(30000);
   printf("\rOPC-UA Function started!\n");
           //The default 64KB of memory for sending and receicing buffer caused problems to many users. With the code below, they are reduced to ~16KB
-        UA_UInt32 sendBufferSize = 16000;       //64 KB was too much for my platform
-        UA_UInt32 recvBufferSize = 16000;       //64 KB was too much for my platform
+        UA_UInt32 sendBufferSize = 16000;       //64 KB is the regular buffer size
+        UA_UInt32 recvBufferSize = 16000;       //64 KB is the regular buffer size
         UA_UInt16 portNumber = 4840;
         UA_StatusCode retval = UA_STATUSCODE_GOOD;
         
@@ -623,7 +839,11 @@ void opcuaFunc(void *argument)
         UA_ServerConfig_setMinimalCustomBuffer(uaServerConfig, portNumber, 0, sendBufferSize, recvBufferSize);
 
         //VERY IMPORTANT: Set the hostname with your IP before starting the server
-        UA_ServerConfig_setCustomHostname(uaServerConfig, UA_STRING("192.168.0.50"));
+        uint8_t ip;
+        char buffer [15];
+        ip = 50 + deviceID;
+        snprintf ( buffer, sizeof(buffer), "192.168.0.%i", ip);
+        UA_ServerConfig_setCustomHostname(uaServerConfig, UA_STRING(buffer));
 
         //The rest is the same as the example
 
@@ -647,9 +867,16 @@ void opcuaFunc(void *argument)
         addVariable(mUaServer);
         writeVariable(mUaServer);
 
-
         // add the red LED to the addressspace
         addLedRedControlNode(mUaServer);
+        
+        // add outputs to the addressspace
+        addOut1ControlNode(mUaServer);
+        addOut2ControlNode(mUaServer);
+        
+        // add inputs to the addressspace
+        addIn1ControlNode(mUaServer);
+        addIn2ControlNode(mUaServer);
 
 
         retval = UA_Server_run(mUaServer, &running);
