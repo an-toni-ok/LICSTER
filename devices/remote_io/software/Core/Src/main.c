@@ -94,6 +94,8 @@ void ledFunc(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+unsigned int deviceID = 0;
+
 /**
   * @brief  Define the printf function.
   * @retval HAL_OK

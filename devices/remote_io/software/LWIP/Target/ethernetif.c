@@ -46,7 +46,7 @@
 #define IFNAME1 't'
 
 /* USER CODE BEGIN 1 */
-
+extern unsigned int deviceID;
 /* USER CODE END 1 */
 
 /* Private variables ---------------------------------------------------------*/
@@ -71,7 +71,56 @@ __ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __ALIGN_END; /* Ethe
 __ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __ALIGN_END; /* Ethernet Transmit Buffer */
 
 /* USER CODE BEGIN 2 */
+/*
+@Note: The DMARxDscrTab and DMATxDscrTab must be declared in a non cacheable memory region
+In this example they are declared in the first 256 Byte of SRAM1 memory, so this
+memory region is configured by MPU as a device memory (please refer to MPU_Config() in main.c).
+In this example the ETH buffers are located in the SRAM2 memory,
+since the data cache is enabled, so cache maintenance operations are mandatory.
+*/
+#if defined ( __CC_ARM )
+ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB] __attribute__((at(0x20010000)));/* Ethernet Rx MA
+Descriptor */
 
+ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB] __attribute__((at(0x20010080)));/* Ethernet Tx DMA
+Descriptor */
+
+uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __attribute__((at(0x2004C000))); /* Ethernet Receive
+Buffer */
+
+uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __attribute__((at(0x2004D7D0))); /* Ethernet Transmit
+Buffer */
+
+#elif defined ( __ICCARM__ ) /*!< IAR Compiler */
+#pragma data_alignment=4
+
+#pragma location=0x20010000
+__no_init ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB];/* Ethernet Rx MA Descriptor */
+
+#pragma location=0x20010080
+__no_init ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB];/* Ethernet Tx DMA Descriptor */
+
+#pragma location=0x2004C000
+__no_init uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE]; /* Ethernet Receive Buffer */
+
+#pragma location=0x2004D7D0
+__no_init uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE]; /* Ethernet Transmit Buffer */
+
+#elif defined ( __GNUC__ ) /*!< GNU Compiler */
+
+ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB] __attribute__((section(".RxDecripSection")));/*
+Ethernet Rx MA Descriptor */
+
+ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB] __attribute__((section(".TxDescripSection")));/*
+Ethernet Tx DMA Descriptor */
+
+uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __attribute__((section(".RxarraySection"))); /*
+Ethernet Receive Buffer */
+
+uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __attribute__((section(".TxarraySection"))); /*
+Ethernet Transmit Buffer */
+
+#endif
 /* USER CODE END 2 */
 
 /* Semaphore to signal incoming packets */
@@ -236,7 +285,7 @@ static void low_level_init(struct netif *netif)
   heth.Init.MediaInterface = ETH_MEDIA_INTERFACE_RMII;
 
   /* USER CODE BEGIN MACADDRESS */
-
+  ((uint8_t*) heth.Init.MACAddr)[5] += deviceID;
   /* USER CODE END MACADDRESS */
 
   hal_eth_init_status = HAL_ETH_Init(&heth);
