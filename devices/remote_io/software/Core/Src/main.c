@@ -63,6 +63,13 @@ const osThreadAttr_t opcuaTask_attributes = {
   .priority = (osPriority_t) osPriorityBelowNormal,
   .stack_size = 8000 * 4
 };
+/* Definitions for ledTask */
+osThreadId_t ledTaskHandle;
+const osThreadAttr_t ledTask_attributes = {
+  .name = "ledTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
 /* USER CODE BEGIN PV */
 static UA_Boolean running = true;
 
@@ -78,6 +85,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART3_UART_Init(void);
 void StartDefaultTask(void *argument);
 void opcuaFunc(void *argument);
+void ledFunc(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -306,6 +314,9 @@ int main(void)
   /* creation of opcuaTask */
   opcuaTaskHandle = osThreadNew(opcuaFunc, NULL, &opcuaTask_attributes);
 
+  /* creation of ledTask */
+  ledTaskHandle = osThreadNew(ledFunc, NULL, &ledTask_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -433,6 +444,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
 
@@ -440,13 +453,25 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, LD1_Pin|LD3_Pin|LD2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(out4_GPIO_Port, out4_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(out3_GPIO_Port, out3_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOG, USB_PowerSwitchOn_Pin|out1_Pin|out2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : USER_Btn_Pin */
   GPIO_InitStruct.Pin = USER_Btn_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(USER_Btn_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : device_0_Pin device_1_Pin */
+  GPIO_InitStruct.Pin = device_0_Pin|device_1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LD1_Pin LD3_Pin LD2_Pin */
   GPIO_InitStruct.Pin = LD1_Pin|LD3_Pin|LD2_Pin;
@@ -455,12 +480,44 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : USB_PowerSwitchOn_Pin */
-  GPIO_InitStruct.Pin = USB_PowerSwitchOn_Pin;
+  /*Configure GPIO pins : device_4_Pin in1_Pin in4_Pin */
+  GPIO_InitStruct.Pin = device_4_Pin|in1_Pin|in4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : out4_Pin */
+  GPIO_InitStruct.Pin = out4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(USB_PowerSwitchOn_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(out4_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : in2_Pin in3_Pin */
+  GPIO_InitStruct.Pin = in2_Pin|in3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : out3_Pin */
+  GPIO_InitStruct.Pin = out3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(out3_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : device_2_Pin device_3_Pin */
+  GPIO_InitStruct.Pin = device_2_Pin|device_3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : USB_PowerSwitchOn_Pin out1_Pin out2_Pin */
+  GPIO_InitStruct.Pin = USB_PowerSwitchOn_Pin|out1_Pin|out2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
   /*Configure GPIO pin : USB_OverCurrent_Pin */
   GPIO_InitStruct.Pin = USB_OverCurrent_Pin;
@@ -579,6 +636,27 @@ void opcuaFunc(void *argument)
 
   printf("\rOPC-UA Function terminated\n");  
   /* USER CODE END opcuaFunc */
+}
+
+/* USER CODE BEGIN Header_ledFunc */
+/**
+* @brief Function implementing the ledTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_ledFunc */
+void ledFunc(void *argument)
+{
+  /* USER CODE BEGIN ledFunc */
+  osDelay(10);
+  printf("\rLED Toggle Task started\n");
+  /* Infinite loop */
+  for(;;)
+  {
+    HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+	osDelay(100);
+  }
+  /* USER CODE END ledFunc */
 }
 
 /**
