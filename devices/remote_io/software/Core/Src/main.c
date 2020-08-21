@@ -29,6 +29,9 @@
 #include <stdlib.h>
 #include <sys/unistd.h>
 #include "open62541.h"
+
+#include "u8g2.h"
+#include "u8x8_stm32_HAL.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,6 +49,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+
+I2C_HandleTypeDef hi2c1;
 
 UART_HandleTypeDef huart3;
 
@@ -70,23 +75,36 @@ const osThreadAttr_t ledTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
+/* Definitions for displayTask */
+osThreadId_t displayTaskHandle;
+const osThreadAttr_t displayTask_attributes = {
+  .name = "displayTask",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 512 * 4
+};
 /* USER CODE BEGIN PV */
-static UA_Boolean running = true;
+static UA_Boolean running = true; // OPA-UA running
 
+// OPC-UA Login data
 static UA_UsernamePasswordLogin logins[2] = {
     {UA_STRING_STATIC("admin"), UA_STRING_STATIC("admin")},
     {UA_STRING_STATIC("root"), UA_STRING_STATIC("root")}
 };
 
+static u8g2_t u8g2; // for OLED display
+
+extern uint8_t IP_ADDRESS[4]; // IP Address 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_I2C1_Init(void);
 void StartDefaultTask(void *argument);
 void opcuaFunc(void *argument);
 void ledFunc(void *argument);
+void displayFunc(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -113,6 +131,53 @@ int _write(int file, char * data, int len) {
 
     // return # of bytes written - as best we can tell
     return (status == HAL_OK ? len : 0);
+}
+
+/* Function which responds for drawing  */
+void u8g2_prepare()
+{
+    u8g2_SetFont(&u8g2, u8g2_font_profont10_tf);
+    u8g2_SetFontRefHeightExtendedText(&u8g2);
+    u8g2_SetDrawColor(&u8g2, 1);
+    u8g2_SetFontPosTop(&u8g2);
+    u8g2_SetFontDirection(&u8g2, 0);
+}
+
+
+void u8g2_disc_circle(uint8_t shift){
+    char message[64];
+    u8g2_SetFont(&u8g2, u8g2_font_profont15_tf);
+    u8g2_DrawStr(&u8g2, 0, 0, "OPC/UA RemoteIO");
+    u8g2_SetFont(&u8g2, u8g2_font_profont10_tf);
+    snprintf(message, sizeof(message), "IP:      %03d.%03d.%03d.%03d",
+	    IP_ADDRESS[0], IP_ADDRESS[1], IP_ADDRESS[2], IP_ADDRESS[3]);
+    u8g2_DrawStr(&u8g2, 10, 15, message);
+    snprintf(message, sizeof(message), "INPUTs:  %1d %1d %1d %1d",
+	    HAL_GPIO_ReadPin(in1_GPIO_Port, in1_Pin),
+	    HAL_GPIO_ReadPin(in2_GPIO_Port, in2_Pin),
+	    HAL_GPIO_ReadPin(in3_GPIO_Port, in3_Pin),
+	    HAL_GPIO_ReadPin(in4_GPIO_Port, in4_Pin));
+   u8g2_DrawStr(&u8g2, 10, 25, message);
+   snprintf(message, sizeof(message), "OUTPUTs: %1d %1d %1d %1d",
+	    HAL_GPIO_ReadPin(out1_GPIO_Port, out1_Pin),
+	    HAL_GPIO_ReadPin(out2_GPIO_Port, out2_Pin),
+	    HAL_GPIO_ReadPin(out3_GPIO_Port, out3_Pin),
+	    HAL_GPIO_ReadPin(out4_GPIO_Port, out4_Pin));
+    u8g2_DrawStr(&u8g2, 10, 35, message);
+    u8g2_DrawCircle(&u8g2,0+shift,20+32,2,U8G2_DRAW_ALL);
+    u8g2_DrawCircle(&u8g2,5+shift,20+32,2,U8G2_DRAW_ALL);
+    u8g2_DrawCircle(&u8g2,10+shift,20+32,2,U8G2_DRAW_ALL);
+}
+
+
+uint8_t max = 150;
+uint8_t step = 0;
+uint8_t picture =0;
+
+void draw(void)
+{
+    u8g2_prepare();
+    u8g2_disc_circle(step);
 }
 
 static void
@@ -503,6 +568,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   printf("\n\n\r+++++++++++++++++++++++++++++++++++++++\n");
  
@@ -566,6 +632,9 @@ int main(void)
 
   /* creation of ledTask */
   ledTaskHandle = osThreadNew(ledFunc, NULL, &ledTask_attributes);
+
+  /* creation of displayTask */
+  displayTaskHandle = osThreadNew(displayFunc, NULL, &displayTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -637,12 +706,62 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART3;
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART3|RCC_PERIPHCLK_I2C1;
   PeriphClkInitStruct.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
+  PeriphClkInitStruct.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.Timing = 0x00200922;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** I2C Enable Fast Mode Plus
+  */
+  HAL_I2CEx_EnableFastModePlus(I2C_FASTMODEPLUS_I2C1);
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
 }
 
 /**
@@ -918,6 +1037,44 @@ void ledFunc(void *argument)
 	osDelay(100);
   }
   /* USER CODE END ledFunc */
+}
+
+/* USER CODE BEGIN Header_displayFunc */
+/**
+* @brief Function implementing the displayTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_displayFunc */
+void displayFunc(void *argument)
+{
+  /* USER CODE BEGIN displayFunc */
+  osDelay(100);
+  //u8g2_Setup_ssd1306_i2c_128x64_noname_1(&u8g2, U8G2_R0, u8x8_byte_hw_i2c, u8x8_stm32_gpio_and_delay_cb); // init u8g2 structure
+  u8g2_Setup_sh1106_i2c_128x64_noname_1(&u8g2, U8G2_R0, u8x8_byte_hw_i2c, u8x8_stm32_gpio_and_delay_cb); // init u8g2 structure
+  u8g2_InitDisplay(&u8g2); // send init sequence to the display, display is in sleep mode after this,
+  u8g2_SetDisplayRotation(&u8g2, U8G2_R2);
+  u8g2_SetPowerSave(&u8g2, 0); // wake up display
+  /* Infinite loop */
+  for(;;){
+    u8g2_FirstPage(&u8g2);
+    do{
+      draw();
+    }
+    while ( u8g2_NextPage(&u8g2) ); // 8 times running
+
+    if (step <= max)
+      step += 3;
+    else{
+      step = 0;
+      picture++;
+      if ( picture >= 6)
+        picture = 0;
+    }
+
+    osDelay(100);
+  }
+  /* USER CODE END displayFunc */
 }
 
 /**
