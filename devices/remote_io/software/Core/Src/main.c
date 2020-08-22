@@ -351,11 +351,16 @@ setOut1State(UA_Server *server,
                   const UA_NodeId *sessionId, void *sessionContext,
                   const UA_NodeId *nodeId, void *nodeContext,
                  const UA_NumericRange *range, const UA_DataValue *data) {
-    UA_Boolean currentState = HAL_GPIO_ReadPin(out1_GPIO_Port, out1_Pin);
-    int level = currentState == true ? 0:1;
-    HAL_GPIO_WritePin(out1_GPIO_Port, out1_Pin, level);
+    //UA_Boolean currentState = HAL_GPIO_ReadPin(out1_GPIO_Port, out1_Pin);
+    printf("\rOutput 1 will be set to %d\n", *(UA_Boolean*) data->value.data); 
+    if(*(UA_Boolean*) data->value.data == UA_TRUE){
+        HAL_GPIO_WritePin(out1_GPIO_Port, out1_Pin, 1);
+    }
+    else if(*(UA_Boolean*) data->value.data == UA_FALSE){
+        HAL_GPIO_WritePin(out1_GPIO_Port, out1_Pin, 0);
+    }
     UA_Boolean out1_state_after_write = HAL_GPIO_ReadPin(out1_GPIO_Port, out1_Pin);
-    UA_StatusCode status = out1_state_after_write == level ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
+    UA_StatusCode status = out1_state_after_write == *(UA_Boolean*) data->value.data ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
     return status;
 }
 
@@ -368,11 +373,16 @@ setOut2State(UA_Server *server,
                   const UA_NodeId *sessionId, void *sessionContext,
                   const UA_NodeId *nodeId, void *nodeContext,
                  const UA_NumericRange *range, const UA_DataValue *data) {
-    UA_Boolean currentState = HAL_GPIO_ReadPin(out2_GPIO_Port, out2_Pin);
-    int level = currentState == true ? 0:1;
-    HAL_GPIO_WritePin(out2_GPIO_Port, out2_Pin, level);
+    //UA_Boolean currentState = HAL_GPIO_ReadPin(out2_GPIO_Port, out2_Pin);
+    printf("\rOutput 2 will be set to %d\n", *(UA_Boolean*) data->value.data); 
+    if(*(UA_Boolean*) data->value.data == UA_TRUE){
+        HAL_GPIO_WritePin(out2_GPIO_Port, out2_Pin, 1);
+    }
+    else if(*(UA_Boolean*) data->value.data == UA_FALSE){
+        HAL_GPIO_WritePin(out2_GPIO_Port, out2_Pin, 0);
+    }
     UA_Boolean out2_state_after_write = HAL_GPIO_ReadPin(out2_GPIO_Port, out2_Pin);
-    UA_StatusCode status = out2_state_after_write == level ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
+    UA_StatusCode status = out2_state_after_write == *(UA_Boolean*) data->value.data ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINTERNALERROR;
     return status;
 }
 
