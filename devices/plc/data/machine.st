@@ -29,6 +29,21 @@ PROGRAM My_Program
 
         (* Converyer belt moves FROM punching machine *)
         output4 AT %MW3 : UINT := 0;
+
+        (* Start light sensor of the convey belt*)
+        input1 AT %MW4 : UINT := 0;
+
+        (* Sensor at the convey belt near the punching machine *)
+        input2 AT %MW5 : UINT := 0;
+
+        (* Sensor punching machine lower limit switch *)
+        input3 AT %MW6 : UINT := 0;
+
+        (* Sensor punching machine upper limit switch *)
+        input4 AT %MW7 : UINT := 0;
+
+        (* IF OPC-UA is used, set this value *)
+        opcua AT %MW8 : UINT := 0;
   
         (* The current application state *)
         hmi_application_state AT %MW10 : UINT := 0;
@@ -88,6 +103,29 @@ PROGRAM My_Program
         TIMEOUT_MAX : UINT := 100;
     END_VAR
 
+    IF opcua < 1 THEN
+        IF start_light_sensor = TRUE THEN
+            input1 := 1;
+        ELSE
+            input1 := 0;
+        END_IF;
+        IF punch_light_sensor = TRUE THEN
+            input2 := 1;
+        ELSE
+            input2 := 0;
+        END_IF;
+        IF lower_limit_switch = TRUE THEN
+            input3 := 1;
+        ELSE
+            input3 := 0;
+        END_IF;
+        IF upper_limit_switch = TRUE THEN
+            input4 := 1;
+        ELSE
+            input4 := 0;
+        END_IF;
+    END_IF;
+
     (* IF the state coming in from the HMI does not match the internal state of the PLC THEN *)
     IF plc_application_state <> hmi_application_state THEN
         (* IF the current state of the PLC is AUTOMATIC...*)
@@ -146,7 +184,7 @@ PROGRAM My_Program
             output4 := 0;
 
             (* If there is an order and the product on the conveyer belt is in the starting position, start producing *)
-            IF delay > 100 AND start_light_sensor = FALSE AND order_count > 0 THEN
+            IF delay > 100 AND input1 = 0 AND order_count > 0 THEN
                 process_state := 1;
                 timeout := 0;
             END_IF;
@@ -159,7 +197,7 @@ PROGRAM My_Program
             output4 := 0;
 
             (* ... until the punching machine light sensor is reached *)
-            IF punch_light_sensor = FALSE THEN
+            IF input2 = 0 THEN
                 process_state := 2;
                 timeout := 0;
 
@@ -178,7 +216,7 @@ PROGRAM My_Program
             output4 := 0;
 
             (* ... until the lower limit switch is reached *)
-            IF lower_limit_switch = TRUE THEN
+            IF input3 = 1 THEN
                 process_state := 3;
                 timeout := 0;
 
@@ -197,7 +235,7 @@ PROGRAM My_Program
             output4 := 0;
 
             (* ... until the upper limit switch is reached *)
-            IF upper_limit_switch = TRUE THEN
+            IF input4 = 1 THEN
                 process_state := 4;
                 timeout := 0;
 
@@ -216,7 +254,7 @@ PROGRAM My_Program
             output4 := 1;
 
             (* ... until the EXIT light sensor is reached. One order is now produced *)
-            IF start_light_sensor = FALSE THEN
+            IF input1 = 0 THEN
                 process_state := 0;
                 delay := 0;
                 timeout := 0;

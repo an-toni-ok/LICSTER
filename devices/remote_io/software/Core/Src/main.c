@@ -618,6 +618,7 @@ int main(void)
   osKernelInitialize();
 
   /* USER CODE BEGIN RTOS_MUTEX */
+  osDelay(30000);
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
