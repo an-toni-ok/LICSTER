@@ -468,10 +468,21 @@ $(BUILD_DIR):
 	mkdir $@		
 
 #######################################
+# test
+#######################################
+test:
+	arm-none-eabi-g++ --specs=nosys.specs $(CFLAGS) -o main_test.elf Test/main_test.cpp -L/usr/lib/libgtest.a -L/usr/lib/libgtest_main.a -I/usr/include/gtest/ $(C_INCLUDES)
+	#arm-none-eabi-g++ --specs=nosys.specs $(CFLAGS) -o main_test.elf Test/main_test.cpp -L/usr/lib/libgtest.a -L/usr/lib/libgtest_main.a -I/usr/include/gtest/ -lgtest $(C_INCLUDES)
+	#arm-none-eabi-g++ -c $(CFLAGS) -o main_test.elf Test/main_test.cpp -L/usr/lib/libgtest.a -I/usr/include/gtest/ $(C_INCLUDES)
+	#gcc -DMBEDTLS_CONFIG_FILE=\"mbedtls_config.h\" -DUSE_HAL_DRIVER -DSTM32F767xx -o main_test_non_arm Test/main_test.cpp -lgtest $(C_INCLUDES)
+
+#######################################
 # clean up
 #######################################
 clean:
 	-rm -fR $(BUILD_DIR)
+	-rm main_test
+	-rm test
 
 #######################################
 # dependencies

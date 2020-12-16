@@ -1,0 +1,62 @@
+main_test.elf: Test/main_test.cpp /usr/include/gtest/gtest/gtest.h \
+ /usr/include/gtest/gtest/internal/gtest-internal.h \
+ /usr/include/gtest/gtest/internal/gtest-port.h \
+ /usr/include/gtest/gtest/internal/gtest-port-arch.h \
+ /usr/include/gtest/gtest/internal/custom/gtest-port.h \
+ /usr/include/gtest/gtest/gtest-message.h \
+ /usr/include/gtest/gtest/internal/gtest-filepath.h \
+ /usr/include/gtest/gtest/internal/gtest-string.h \
+ /usr/include/gtest/gtest/internal/gtest-type-util.h \
+ /usr/include/gtest/gtest/gtest-death-test.h \
+ /usr/include/gtest/gtest/internal/gtest-death-test-internal.h \
+ /usr/include/gtest/gtest/gtest-matchers.h \
+ /usr/include/gtest/gtest/gtest-printers.h \
+ /usr/include/gtest/gtest/internal/custom/gtest-printers.h \
+ /usr/include/gtest/gtest/gtest-param-test.h \
+ /usr/include/gtest/gtest/internal/gtest-param-util.h \
+ /usr/include/gtest/gtest/gtest_prod.h \
+ /usr/include/gtest/gtest/gtest-test-part.h \
+ /usr/include/gtest/gtest/gtest-typed-test.h \
+ /usr/include/gtest/gtest/gtest_pred_impl.h Test/add.c
+
+/usr/include/gtest/gtest/gtest.h:
+
+/usr/include/gtest/gtest/internal/gtest-internal.h:
+
+/usr/include/gtest/gtest/internal/gtest-port.h:
+
+/usr/include/gtest/gtest/internal/gtest-port-arch.h:
+
+/usr/include/gtest/gtest/internal/custom/gtest-port.h:
+
+/usr/include/gtest/gtest/gtest-message.h:
+
+/usr/include/gtest/gtest/internal/gtest-filepath.h:
+
+/usr/include/gtest/gtest/internal/gtest-string.h:
+
+/usr/include/gtest/gtest/internal/gtest-type-util.h:
+
+/usr/include/gtest/gtest/gtest-death-test.h:
+
+/usr/include/gtest/gtest/internal/gtest-death-test-internal.h:
+
+/usr/include/gtest/gtest/gtest-matchers.h:
+
+/usr/include/gtest/gtest/gtest-printers.h:
+
+/usr/include/gtest/gtest/internal/custom/gtest-printers.h:
+
+/usr/include/gtest/gtest/gtest-param-test.h:
+
+/usr/include/gtest/gtest/internal/gtest-param-util.h:
+
+/usr/include/gtest/gtest/gtest_prod.h:
+
+/usr/include/gtest/gtest/gtest-test-part.h:
+
+/usr/include/gtest/gtest/gtest-typed-test.h:
+
+/usr/include/gtest/gtest/gtest_pred_impl.h:
+
+Test/add.c:
