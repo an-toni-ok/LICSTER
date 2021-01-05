@@ -29,6 +29,7 @@ def create_app(test_config=None):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Server"] = ""
         response.headers["Content-Security-Policy"] = "default-src 'self'"
+        response.headers["SameSite"] = "Strict"
         return response
 
     if test_config is None:
