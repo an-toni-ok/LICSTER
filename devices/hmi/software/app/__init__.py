@@ -22,12 +22,17 @@ def create_app(test_config=None):
         SECRET_KEY=os.getenv('SECRET_KEY'),
         DATABASE=os.path.join(app.instance_path, "app.sqlite"),
     )
+    app.config.update(
+        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Strict',
+    )
 
     @app.after_request
     def prevent_embedding(response):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Server"] = ""
+        response.headers["Server"] = "None"
         response.headers["Content-Security-Policy"] = "default-src 'self'"
         response.headers["SameSite"] = "Strict"
         return response
