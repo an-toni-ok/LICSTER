@@ -157,7 +157,16 @@ pipeline {
             }
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh 'cd ./devices/hmi/software/app/static; npm install package.json'
+                    sh '''
+                        cd ./devices/hmi/software
+                        mkdir instance
+                        cp test/app.sqlite instance/app.sqlite
+                        SECRET="0t0RMYslWW5g^QIrwQsOpMz9tvydonZ8"
+                        export SECRET_KEY=$SECRET
+                        echo $SECRET_KEY > secret.key
+                        gunicorn -w 4 -b 0.0.0.0:8080 "app:create_app()" &
+                        docker run -t owasp/zap2docker-stable zap-baseline.py -t http://$(ip -f inet -o addr show docker0 | awk '{print $4}' | cut -d '/' -f 1):8080
+                    '''
                 }
             }
         }
